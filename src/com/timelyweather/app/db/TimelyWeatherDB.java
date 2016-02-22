@@ -152,6 +152,7 @@ public class TimelyWeatherDB {
 			values.put("county_name", county.getCountyName());
 			values.put("county_code", county.getCountyCode());
 			values.put("city_id", county.getCityId());
+			values.put("province_id", county.getProvinceId());
 			db.insert("County", null, values);
 		}
 	}
@@ -160,12 +161,13 @@ public class TimelyWeatherDB {
 	 * @param cityId
 	 * @return List<County
 	 */
-	public List<County> loadCounty(int cityId){
+//	public List<County> loadCounty(int cityId){
+	public List<County> loadCounty(int provinceId){
 		List<County> listCounty=new ArrayList<County>();
 		
 		//查找城市id为cityId的区县信息
-		Cursor cursor=db.query("County", null, "city_id=?", 
-				new String[]{String.valueOf(cityId)}, null, null, null);
+		Cursor cursor=db.query("County", null, "province_id=?", 
+				new String[]{String.valueOf(provinceId)}, null, null, null);
 		
 		//判断表中的数据是否为空
 		if(cursor.moveToFirst()){
@@ -174,9 +176,10 @@ public class TimelyWeatherDB {
 				County county =new County();
 				String countyName=cursor.getString(cursor.getColumnIndex("county_name"));
 				String countyCode=cursor.getString(cursor.getColumnIndex("county_code"));
-				county.setCountyCode(countyName);
-				county.setCountyName(countyCode);
-				county.setCityId(cityId);
+				county.setCountyCode(countyCode);
+				county.setCountyName(countyName);
+//				county.setCityId(cityId);
+				county.setProvinceId(provinceId);
 				listCounty.add(county);
 				//使得表的指针移动到下一行
 			} while (cursor.moveToNext());

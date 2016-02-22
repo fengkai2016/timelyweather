@@ -28,7 +28,7 @@ public class TimelyWeatherOpenHelper extends SQLiteOpenHelper {
 	 */
 	private static final String CREATE_COUNTY=
 			"create table County(_id integer primary key autoincrement, " +
-					"county_name text, county_code text, city_id integer)";  
+					"county_name text, county_code text, city_id integer, province_id integer)";  
 	public TimelyWeatherOpenHelper(Context context, String name,
 			CursorFactory factory, int version) {
 		super(context, name, factory, version);

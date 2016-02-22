@@ -8,7 +8,15 @@ public class County {
 	private int id;
 	private String countyName;
 	private String countyCode;
+	private int provinceId;
 	private int cityId;
+	
+	public int getProvinceId() {
+		return provinceId;
+	}
+	public void setProvinceId(int provinceId) {
+		this.provinceId = provinceId;
+	}
 	public int getId() {
 		return id;
 	}
