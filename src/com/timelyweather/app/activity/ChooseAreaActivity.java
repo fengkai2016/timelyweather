@@ -14,7 +14,10 @@ import com.timelyweather.app.util.Utility;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.Window;
@@ -68,13 +71,29 @@ public class ChooseAreaActivity extends Activity {
 	 * 设置当前级别
 	 */
 	private int currentLevel;
-	private String address;
 	
+	private String address;
+	/**
+	 * 判断是否从WeatherActivity跳转过来的
+	 */
+	private boolean isFromWeatherActivity=false;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		// TODO Auto-generated method stub
 		super.onCreate(savedInstanceState);
+		
+		isFromWeatherActivity=getIntent().getBooleanExtra("fromWeatherActivity", false);
+		//如果上一次已经选择了一个城市，则直接跳转到天气活动
+		SharedPreferences spf=PreferenceManager.getDefaultSharedPreferences(this);
+		//已经选择了城市而且不是从WeatherActivity跳转过来的才会调用if里面的语句，跳转到WeatherActivity
+		if(spf.getBoolean("boolean_select", false)&&!isFromWeatherActivity){
+			Intent intent=new Intent(this,WeatherActivity.class);
+			startActivity(intent);
+			finish();
+			return;
+		}
+		
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.choose_area);
 		//设置ListView的布局和适配器
@@ -99,6 +118,14 @@ public class ChooseAreaActivity extends Activity {
 				}else if(currentLevel==LEVEL_CITY){
 					selectCity=cityList.get(position);
 					queryCounty();		
+				}else if(currentLevel==LEVEL_COUNTY){
+					String countyCode=countyList.get(position).getCountyCode();
+					Intent intent=new Intent();
+					intent.setClass(ChooseAreaActivity.this, WeatherActivity.class);
+					intent.putExtra("countyCode", countyCode);
+					startActivity(intent);
+					finish();
+					
 				}
 			}
 			
@@ -276,6 +303,10 @@ public class ChooseAreaActivity extends Activity {
 			queryProvince();
 		}
 		else{
+			if(isFromWeatherActivity) {
+				Intent i=new Intent(this,WeatherActivity.class);
+				startActivity(i);
+			}
 			finish();
 		}
 	}
