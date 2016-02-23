@@ -1,6 +1,7 @@
 package com.timelyweather.app.activity;
 
 import com.timelyweather.app.R;
+import com.timelyweather.app.service.AutoUpdateService;
 import com.timelyweather.app.util.HttpCallbackListener;
 import com.timelyweather.app.util.HttpUtil;
 import com.timelyweather.app.util.Utility;
@@ -29,13 +30,21 @@ public class WeatherActivity extends Activity {
 	private TextView weather_desp;
 	private TextView temp_desp;
 	private String countyCode;
-
+	
+	/**
+	 * 判断是否从ChooseAreaActivity跳转过来的
+	 */
+	private boolean isFromChooseAreaActivity=false;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		// TODO Auto-generated method stub
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.weather_layout);
+		//判断是否从ChooseAreaActivity跳转过来的
+		isFromChooseAreaActivity=getIntent().getBooleanExtra(
+				"fromChooseAreaActivity", false);
+		
 		//初始化布局
 		weather_info_layout = (LinearLayout) findViewById(R.id.weather_info_layout);
 		title_text = (TextView) findViewById(R.id.title_text);
@@ -60,15 +69,19 @@ public class WeatherActivity extends Activity {
 	
 	private void showWeather() {
 		//TODO Auto-generated method stub
-		SharedPreferences spf=PreferenceManager.getDefaultSharedPreferences(this);
+		SharedPreferences spf=this.getSharedPreferences("weather_"+0, MODE_PRIVATE);
 		
 		title_text.setText(spf.getString("string_City", ""));
 		publish_text.setText("今天"+spf.getString("string_Loc", "")+"发布");
 		current_date.setText(spf.getString("string_Date", ""));
-		weather_desp.setText(spf.getString("string_Txt_d", "")+"转"+spf.getString("string_Txt_n", ""));
+		weather_desp.setText("白天："+spf.getString("string_Txt_d", "")+"\r\n"+
+							 "晚上："+spf.getString("string_Txt_n", ""));
 		temp_desp.setText(spf.getString("string_Min", "")+"℃~"+spf.getString("string_Max", "")+"℃");
 		title_text.setVisibility(View.VISIBLE);
 		weather_info_layout.setVisibility(View.VISIBLE);
+		//激活后台服务
+		Intent i=new Intent(this,AutoUpdateService.class);
+		startService(i);
 	}
 
 	private void queryWeatherCode(String countyCode) {
@@ -109,6 +122,10 @@ public class WeatherActivity extends Activity {
 		});
 	}
 
+	/**
+	 * 切换城市
+	 * @param v
+	 */
 	public void switchCity(View v){
 		
 		Intent intent=new Intent();
@@ -117,15 +134,21 @@ public class WeatherActivity extends Activity {
 		startActivity(intent);
 		finish();
 	}
-	
+	/**
+	 * 刷新天气
+	 * @param v
+	 */
 	public void refreshWeather(View v){
 		publish_text.setText("同步中...");
 		queryWeatherCode(countyCode);
 	}
-	
 	public void onBackPressed(){
-		super.onBackPressed();
-			finish();
-			
+//		if(isFromChooseAreaActivity) {
+//			Intent i=new Intent(this,ChooseAreaActivity.class);
+//			i.putExtra("fromWeatherActivity", true);
+//			startActivity(i);
+//		}
+		finish();
 	}
+
 }

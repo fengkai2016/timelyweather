@@ -8,15 +8,10 @@ public class County {
 	private int id;
 	private String countyName;
 	private String countyCode;
-	private int provinceId;
-	private int cityId;
+	private String cityCode;
+	private String provinceCode;
 	
-	public int getProvinceId() {
-		return provinceId;
-	}
-	public void setProvinceId(int provinceId) {
-		this.provinceId = provinceId;
-	}
+	
 	public int getId() {
 		return id;
 	}
@@ -35,11 +30,17 @@ public class County {
 	public void setCountyCode(String countyCode) {
 		this.countyCode = countyCode;
 	}
-	public int getCityId() {
-		return cityId;
+	public String getCityCode() {
+		return cityCode;
 	}
-	public void setCityId(int cityId) {
-		this.cityId = cityId;
+	public void setCityCode(String cityCode) {
+		this.cityCode = cityCode;
+	}
+	public String getProvinceCode() {
+		return provinceCode;
+	}
+	public void setProvinceCode(String provinceCode) {
+		this.provinceCode = provinceCode;
 	}
 	
 }

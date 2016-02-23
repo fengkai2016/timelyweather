@@ -21,7 +21,7 @@ public class TimelyWeatherDB {
 	/**
 	 * 数据库名
 	 */
-	public static final String DB_NAME="timely_weather";
+	public static final String DB_NAME="timely_weather.db";
 	/**
 	 * 版本号
 	 */
@@ -65,7 +65,39 @@ public class TimelyWeatherDB {
 			values.put("province_name", province.getProvinceName());
 			values.put("province_code", province.getProvinceCode());
 			db.insert("Province", null, values);
+			
 		}
+	}
+	
+	/**
+	 * 删除重复的省份
+	 */
+	public void deleteProvince(){
+		db.delete("Province", "_id = ? and province_code = ?", new String[]{"1","31"});
+	}
+	/**
+	 * 更新出错的省份
+	 */
+	public void updateProvince(){
+		ContentValues values=new ContentValues();
+		
+		values.put("province_name", "北京");
+		db.update("Province", values, "province_code =?", new String[]{"01"});
+		values.clear();
+		values.put("province_name", "上海");
+		db.update("Province", values, "province_code =?", new String[]{"02"});
+		values.clear();
+		values.put("province_name", "天津");
+		db.update("Province", values, "province_code =?", new String[]{"03"});
+		values.clear();
+		values.put("province_name", "重庆");
+		db.update("Province", values, "province_code =?", new String[]{"04"});
+		values.clear();
+		values.put("province_name", "香港");
+		db.update("Province", values, "province_code =?", new String[]{"32"});
+		values.clear();
+		values.put("province_name", "澳门");
+		db.update("Province", values, "province_code =?", new String[]{"33"});
 	}
 	
 	/**
@@ -104,7 +136,7 @@ public class TimelyWeatherDB {
 			ContentValues values=new ContentValues();
 			values.put("city_name", city.getCityName());
 			values.put("city_code", city.getCityCode());
-			values.put("province_id", city.getProvinceId());
+			values.put("province_code", city.getProvinceCode());
 			db.insert("City", null, values);
 		}
 	}
@@ -114,12 +146,12 @@ public class TimelyWeatherDB {
 	 * @param provinceId
 	 * @return List<City>
 	 */
-	public List<City> loadCity(int provinceId){
+	public List<City> loadCity(String province_code){
 		List<City> listCity=new ArrayList<City>();
 		
 		//查找省份id为provinceId的城市信息
-		Cursor cursor=db.query("City", null, "province_id=?", 
-				new String[]{String.valueOf(provinceId)}, null, null, null);
+		Cursor cursor=db.query("City", null, "province_code=?", 
+				new String[]{province_code}, null, null, null);
 		
 		//判断表中的数据是否为空
 		if(cursor.moveToFirst()){
@@ -130,7 +162,7 @@ public class TimelyWeatherDB {
 				String cityCode=cursor.getString(cursor.getColumnIndex("city_code"));
 				city.setCityCode(cityCode);
 				city.setCityName(cityName);
-				city.setProvinceId(provinceId);
+				city.setProvinceCode(province_code);
 				listCity.add(city);
 				//使得表的指针移动到下一行
 			} while (cursor.moveToNext());
@@ -151,8 +183,8 @@ public class TimelyWeatherDB {
 			ContentValues values=new ContentValues();
 			values.put("county_name", county.getCountyName());
 			values.put("county_code", county.getCountyCode());
-			values.put("city_id", county.getCityId());
-			values.put("province_id", county.getProvinceId());
+			values.put("city_code", county.getCityCode());
+			values.put("province_code", county.getProvinceCode());
 			db.insert("County", null, values);
 		}
 	}
@@ -161,13 +193,12 @@ public class TimelyWeatherDB {
 	 * @param cityId
 	 * @return List<County
 	 */
-//	public List<County> loadCounty(int cityId){
-	public List<County> loadCounty(int provinceId){
+	public List<County> loadCounty(String city_code){
 		List<County> listCounty=new ArrayList<County>();
 		
 		//查找城市id为cityId的区县信息
-		Cursor cursor=db.query("County", null, "province_id=?", 
-				new String[]{String.valueOf(provinceId)}, null, null, null);
+		Cursor cursor=db.query("County", null, "city_code=?", 
+				new String[]{city_code}, null, null, null);
 		
 		//判断表中的数据是否为空
 		if(cursor.moveToFirst()){
@@ -178,8 +209,7 @@ public class TimelyWeatherDB {
 				String countyCode=cursor.getString(cursor.getColumnIndex("county_code"));
 				county.setCountyCode(countyCode);
 				county.setCountyName(countyName);
-//				county.setCityId(cityId);
-				county.setProvinceId(provinceId);
+				county.setProvinceCode(city_code);
 				listCounty.add(county);
 				//使得表的指针移动到下一行
 			} while (cursor.moveToNext());

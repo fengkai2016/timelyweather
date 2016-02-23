@@ -18,6 +18,7 @@ import com.timelyweather.app.db.TimelyWeatherDB;
 import com.timelyweather.app.model.City;
 import com.timelyweather.app.model.County;
 import com.timelyweather.app.model.Province;
+import com.timelyweather.app.model.Weather;
 /**
  * Json解析返回的数据
  * @author Administrator
@@ -28,6 +29,8 @@ public class Utility {
 	private static String lastProvinceCode="";
 	private static String lastCityCode="";
 	private static List<JSONObject> list_Object_DailyForecast;
+	private static Weather weather;
+	private static List<Weather> list_Weather;
 	public synchronized static boolean handleCityResponse(TimelyWeatherDB db,String startResponse){
 		//判断返回的数据是否为空
 		if(!TextUtils.isEmpty(startResponse)){
@@ -50,15 +53,15 @@ public class Utility {
 					County county=new County();
 					county.setCountyCode(countyCode);
 					county.setCountyName(countyName);
-					county.setCityId(Integer.parseInt(cityCode));
-					county.setProvinceId(Integer.parseInt(provinceCode));
+					county.setCityCode(cityCode);
+					county.setProvinceCode(provinceCode);
 					db.saveCounty(county);
 					
 					//判断与上一个地区是否属于同一个城市
 					if(!cityCode.equals(lastCityCode)){
 						lastCityCode=cityCode;
 						City city=new City();
-						city.setProvinceId(Integer.parseInt(provinceCode));
+						city.setProvinceCode(provinceCode);
 						city.setCityCode(cityCode);
 						//没有返回城市名字，先用地区名字代替
 						city.setCityName(countyName);
@@ -73,7 +76,11 @@ public class Utility {
 						}
 					}
 					
-				}				
+				}
+				//删除重复的省份
+				db.deleteProvince();
+				//修改错误省份名字 
+				db.updateProvince();
 				return true;
 			} catch (JSONException e) {
 				// TODO Auto-generated catch block
@@ -91,6 +98,8 @@ public class Utility {
 	 * @param startResponse
 	 */
 	public static void headleWeaherResponse(Context context,String startResponse){
+		
+		
 		
 		try {
 			//获取整个JSON数据
@@ -122,32 +131,38 @@ public class Utility {
 			list_Object_DailyForecast.add(object_Today_DailyForecast);
 			list_Object_DailyForecast.add(object_Tomorrow_DailyForecast);
 			list_Object_DailyForecast.add(object_TheDayAfterTomorrow_DailyForecast);
-			
+			//创建一个天气信息类Weather的容器
+			list_Weather = new ArrayList<Weather>();
 			//遍历集合，获取详细信息
-//			for(JSONObject object_DailyForecast:list_Object_DailyForecast){
-				//String string_Date=object_DailyForecast.getString("date");
+			int i=0;
+			for(JSONObject object_DailyForecast:list_Object_DailyForecast){
 			
 				//获取当前日期
-				String string_Date=object_Today_DailyForecast.getString("date");
+				String string_Date=object_DailyForecast.getString("date");
 				
 				//获取天气状况
-				JSONObject object_Cond=object_Today_DailyForecast.getJSONObject("cond");
+				JSONObject object_Cond=object_DailyForecast.getJSONObject("cond");
 				//获取白天天气描述
 				String string_Txt_d=object_Cond.getString("txt_d");
 				//获取夜间天气描述
 				String string_Txt_n=object_Cond.getString("txt_n");
 				
 				//获取温度信息
-				JSONObject object_Tmp=object_Today_DailyForecast.getJSONObject("tmp");
+				JSONObject object_Tmp=object_DailyForecast.getJSONObject("tmp");
 				//获取最高温
 				String string_Max=object_Tmp.getString("max");
 				//获取最低温
 				String string_Min=object_Tmp.getString("min");
 				
-//			}
+				weather = new Weather(i, string_City, string_Id, string_Loc, string_Date, 
+						string_Txt_d, string_Txt_n, string_Max, string_Min);
+				list_Weather.add(weather);
+				saveWeatherInfo(i, string_City, string_Id, string_Loc, string_Date, 
+						string_Txt_d, string_Txt_n, string_Max, string_Min,context);
+				//i自增长
+				i++;
+			}
 			//调用储存当前第几天，日期，天气状况，温度的方法
-			saveWeatherInfo(0, string_City, string_Id, string_Loc, string_Date, 
-					string_Txt_d, string_Txt_n, string_Max, string_Min,context);
 			
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
@@ -174,8 +189,10 @@ public class Utility {
 			String string_Txt_d, String string_Txt_n, String string_Max,
 			String string_Min,Context context) {
 		
-		SharedPreferences.Editor editor=
-				PreferenceManager.getDefaultSharedPreferences(context).edit();
+		//储存多个weather信息
+		SharedPreferences.Editor editor=context.getSharedPreferences(
+				"weather_"+i, context.MODE_PRIVATE).edit();
+				
 		//储存成xml格式
 		editor.putBoolean("boolean_select", true);
 		editor.putString("string_City", string_City);

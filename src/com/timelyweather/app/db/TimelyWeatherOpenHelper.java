@@ -22,13 +22,13 @@ public class TimelyWeatherOpenHelper extends SQLiteOpenHelper {
 	 */
 	private static final String CREATE_CITY=
 			"create table City(_id integer primary key autoincrement, " +
-					"city_name text, city_code text, province_id integer)";  
+					"city_name text, city_code text, province_code text)";  
 	/**
 	 * CountyΩ®±Ì”Ôæ‰
 	 */
 	private static final String CREATE_COUNTY=
 			"create table County(_id integer primary key autoincrement, " +
-					"county_name text, county_code text, city_id integer, province_id integer)";  
+					"county_name text, county_code text, city_code text, province_code text)";  
 	public TimelyWeatherOpenHelper(Context context, String name,
 			CursorFactory factory, int version) {
 		super(context, name, factory, version);

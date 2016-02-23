@@ -68,7 +68,7 @@
         <TextView 
             android:id="@+id/current_date"
             android:text="当地时间"
-            android:textSize="18sp"
+            android:textSize="24sp"
             android:gravity="center"
             android:textColor="#FFF"
             android:layout_width="match_parent"
@@ -76,11 +76,11 @@
         <TextView 
             android:id="@+id/weather_desp"
             android:text="天气状况"
-            android:textSize="40sp"
+            android:textSize="30sp"
             android:gravity="center"
             android:textColor="#FFF"
-            android:layout_width="match_parent"
-    		android:layout_height="80dp"/>
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"/>
         <TextView 
             android:id="@+id/temp_desp"
             android:text="温度状况"
@@ -88,7 +88,7 @@
             android:gravity="center"
             android:textColor="#FFF"
             android:layout_width="match_parent"
-    		android:layout_height="80dp"/>
+    		android:layout_height="100dp"/>
 	        
 	</LinearLayout>
     

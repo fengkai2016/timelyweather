@@ -1,8 +1,18 @@
 package com.timelyweather.app.activity;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.lidroid.xutils.HttpUtils;
+import com.lidroid.xutils.exception.HttpException;
+import com.lidroid.xutils.http.HttpHandler;
+import com.lidroid.xutils.http.ResponseInfo;
+import com.lidroid.xutils.http.callback.RequestCallBack;
 import com.timelyweather.app.R;
 import com.timelyweather.app.db.TimelyWeatherDB;
 import com.timelyweather.app.model.City;
@@ -17,6 +27,8 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.View;
@@ -37,6 +49,8 @@ import android.widget.Toast;
 public class ChooseAreaActivity extends Activity {
 
 	//初始化的实例
+	private long max;
+	private long progress;
 	private ProgressDialog progressDialog;
 	private TextView title_text;
 	private ListView list_view;
@@ -77,6 +91,24 @@ public class ChooseAreaActivity extends Activity {
 	 * 判断是否从WeatherActivity跳转过来的
 	 */
 	private boolean isFromWeatherActivity=false;
+	private String target;
+	
+	Handler handler=new Handler(){
+		public void handleMessage(Message msg){
+			super.handleMessage(msg);
+			switch (msg.what) {
+			case 0:
+				progressDialog.setProgress(50);
+				
+				break;
+
+			default:
+				break;
+			}
+			progressDialog.setProgress((int) progress);
+			
+		}
+	};
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -85,7 +117,7 @@ public class ChooseAreaActivity extends Activity {
 		
 		isFromWeatherActivity=getIntent().getBooleanExtra("fromWeatherActivity", false);
 		//如果上一次已经选择了一个城市，则直接跳转到天气活动
-		SharedPreferences spf=PreferenceManager.getDefaultSharedPreferences(this);
+		SharedPreferences spf=this.getSharedPreferences("weather_"+0, MODE_PRIVATE);
 		//已经选择了城市而且不是从WeatherActivity跳转过来的才会调用if里面的语句，跳转到WeatherActivity
 		if(spf.getBoolean("boolean_select", false)&&!isFromWeatherActivity){
 			Intent intent=new Intent(this,WeatherActivity.class);
@@ -113,8 +145,8 @@ public class ChooseAreaActivity extends Activity {
 				// TODO Auto-generated method stub
 				if(currentLevel==LEVEL_PROVINCE){
 					selectProvince=provinceList.get(position);
-//					queryCity();
-					queryCounty();
+					queryCity();
+//					queryCounty();
 				}else if(currentLevel==LEVEL_CITY){
 					selectCity=cityList.get(position);
 					queryCounty();		
@@ -123,6 +155,7 @@ public class ChooseAreaActivity extends Activity {
 					Intent intent=new Intent();
 					intent.setClass(ChooseAreaActivity.this, WeatherActivity.class);
 					intent.putExtra("countyCode", countyCode);
+					intent.putExtra("fromChooseAreaActivity", true);
 					startActivity(intent);
 					finish();
 					
@@ -154,6 +187,7 @@ public class ChooseAreaActivity extends Activity {
 		}
 		else {
 			queryFromServer(null,"Province");
+			
 		}
 	}
 
@@ -162,8 +196,7 @@ public class ChooseAreaActivity extends Activity {
 
 	private void queryCounty() {
 		// TODO Auto-generated method stub
-//		countyList=db.loadCounty(selectCity.getId());
-		countyList=db.loadCounty(Integer.parseInt(selectProvince.getProvinceCode()));
+		countyList=db.loadCounty(selectCity.getCityCode());
 		if(countyList.size()>0){
 			//清空应该在ListView中呈现的数据
 			dataList.clear();
@@ -186,7 +219,7 @@ public class ChooseAreaActivity extends Activity {
 
 	private void queryCity() {
 		// TODO Auto-generated method stub
-		cityList=db.loadCity(selectProvince.getId());
+		cityList=db.loadCity(selectProvince.getProvinceCode());
 		if(cityList.size()>0){
 			//清空应该在ListView中呈现的数据
 			dataList.clear();
@@ -197,7 +230,7 @@ public class ChooseAreaActivity extends Activity {
 			adapter.notifyDataSetChanged();
 			list_view.setSelection(0);
 			title_text.setText(selectProvince.getProvinceName());
-			//设置当前状态为省
+			//设置当前状态为市
 			currentLevel=LEVEL_CITY;
 		}
 		else {
@@ -215,44 +248,88 @@ public class ChooseAreaActivity extends Activity {
 					"&key=fa9b707316e7417eada569925d37dab0";
 		}
 		else{
-			address="https://api.heweather.com/x3/citylist?search=allchina" +
-					"&key=fa9b707316e7417eada569925d37dab0";
+			address="https://api.heweather.com/x3/citylist?search=allchina&key=fa9b707316e7417eada569925d37dab0";
+			target = "/storage/sdcard1/timelyweather/allCities.txt";
 		}
 		//显示对话框
 		showProgressDialog();
-		//向服务器发送请求
-		HttpUtil.sendHttpRequest(address, new HttpCallbackListener() {
-			
-			@Override
-			public void onFinish(String response) {
-				// TODO Auto-generated method stub
+		
+		//用导入的jar包的api向服务器发送请求下载数据（速度快）
+		HttpUtils xUtils =new HttpUtils();
+		HttpHandler<File> xHandler=xUtils.download(
+				address,//下载地址 
+				target,  //保存地址
+				true, //是否支持断点传续 
+				true, 
+				new RequestCallBack<File>() {
+					
+
+					/**
+					 * 下载成功时调用该方法
+					 */
+			public void onSuccess(ResponseInfo<File> arg0) {
 				boolean result=false;
-				result=Utility.handleCityResponse(db, response);
-				if(result){
-					//通过runOnUiThread回到主线程处理逻辑
-					runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-							// TODO Auto-generated method stub
-							closeProgressDialog();
-							if("Province".equals(type)){
-								queryProvince();
+				FileReader fr;
+				BufferedReader reader=null;
+				try {
+					//创建文件实例
+					File file=new File("storage/sdcard1/timelyweather/allCities.txt");
+					if(!file.exists()){
+						file.createNewFile();
+					}
+					fr = new FileReader(file);
+					reader=new BufferedReader(fr );
+					
+					//获取下载的文本
+					StringBuilder sb=new StringBuilder();
+					String line=null;
+					while((line=reader.readLine())!=null){
+						sb.append(line);
+					}
+					String response=sb.toString();
+					
+					//向Utility发送数据
+					result=Utility.handleCityResponse(db, response);
+					
+					if(result){
+						//通过runOnUiThread回到主线程处理逻辑
+						runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								// TODO Auto-generated method stub
+								closeProgressDialog();
+								if("Province".equals(type)){
+									queryProvince();
+								}
+								else if("City".equals(type)){
+									queryCity();
+								}
+								else if("County".equals(type)){
+									queryCounty();
+								}
 							}
-							else if("City".equals(type)){
-								queryCity();
-							}
-							else if("County".equals(type)){
-								queryCounty();
-							}
-						}
-					});
+						});
+					}
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
+				finally{
+					if(reader!=null){
+						try {
+							reader.close();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				}
+				
 			}
 			
 			@Override
-			public void onError(Exception e) {
+			public void onFailure(HttpException arg0, String arg1) {
 				// TODO Auto-generated method stub
-				//通过runOnUiThread回到主线程更新UI
 				runOnUiThread(new Runnable() {
 					@Override
 					public void run() {
@@ -265,7 +342,68 @@ public class ChooseAreaActivity extends Activity {
 					
 				});
 			}
+
+			@Override
+			public void onLoading(final long total, final long current, boolean isUploading) {
+				// TODO Auto-generated method stub
+				super.onLoading(total, current, isUploading);
+						// TODO Auto-generated method stub
+						max = total;
+						progress=current;
+//						progress = current*100/total+"%";
+
+			}
+			
 		});
+		
+		
+		//向服务器发送请求（下载速度慢）
+//		HttpUtil.sendHttpRequest(address, new HttpCallbackListener() {
+//			
+//			@Override
+//			public void onFinish(String response) {
+//				// TODO Auto-generated method stub
+//				boolean result=false;
+//				result=Utility.handleCityResponse(db, response);
+//				if(result){
+//					//通过runOnUiThread回到主线程处理逻辑
+//					runOnUiThread(new Runnable() {
+//						@Override
+//						public void run() {
+//							// TODO Auto-generated method stub
+//							closeProgressDialog();
+//							if("Province".equals(type)){
+//								queryProvince();
+//							}
+//							else if("City".equals(type)){
+//								queryCity();
+//							}
+//							else if("County".equals(type)){
+//								queryCounty();
+//							}
+//						}
+//					});
+//				}
+//			}
+//			
+//			@Override
+//			public void onError(Exception e) {
+//				// TODO Auto-generated method stub
+//				//通过runOnUiThread回到主线程更新UI
+//				runOnUiThread(new Runnable() {
+//					@Override
+//					public void run() {
+//						// TODO Auto-generated method stub
+//						
+//						closeProgressDialog();
+//						Toast.makeText(ChooseAreaActivity.this, "加载失败！", 0).show();
+//					}
+//
+//					
+//				});
+//			}
+//		});
+		
 		
 	}
 	/**
@@ -273,11 +411,17 @@ public class ChooseAreaActivity extends Activity {
 	 */
 	private void showProgressDialog() {
 		// TODO Auto-generated method stub
-		System.out.println();
+		
 		if(progressDialog==null){
 			progressDialog=new ProgressDialog(this);
-			progressDialog.setMessage("正在加载...");
+//			progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+			progressDialog.setMessage("正在加载所有城市信息，请稍等...");
 			progressDialog.setCancelable(false);
+//			progressDialog.setIndeterminate(false);
+//			progressDialog.setProgress(50);
+//			Message msg=handler.obtainMessage();
+//			msg.what=0;
+//			handler.sendMessage(msg);
 			
 		}
 		progressDialog.show();
@@ -297,7 +441,7 @@ public class ChooseAreaActivity extends Activity {
 	public void onBackPressed(){
 		if(currentLevel==LEVEL_COUNTY){
 //			queryCity();
-			queryProvince();
+			queryCity();
 		}
 		else if(currentLevel==LEVEL_CITY){
 			queryProvince();
